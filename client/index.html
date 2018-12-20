@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>swoole弹幕</title>
+<script src="src/jquery-3.3.1.min.js"></script>
+<script src="src/jquery.danmu.js"></script>
+<style>
+ 	body {
+      font-family: "Microsoft YaHei" ! important;
+      font-color:#222;
+    }
+    pre {
+      line-height: 2em;
+      font-family: "Microsoft YaHei" ! important;
+    }
+    h4 {
+      line-height: 2em;
+    }
+    #danmuarea {
+      position: relative;
+      background: #222;
+      width:800px;
+      height: 445px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .center {
+      text-align: center;
+    }
+    .ctr {
+      font-size: 1em;
+      line-height: 2em;
+    }
+    #course {
+		height: 445px;
+    	line-height: 445px;
+    	overflow:hidden; 
+    	font-size: 6em;
+    }
+</style>
+
+</head>
+
+<body class="center">
+	<div id="danmuarea">
+	  <div id="danmu" >
+	  <div id="course"></div>
+	  </div>
+	</div>
+
+<div class="ctr" >
+  发弹幕:
+  <select  name="color" id="color" >
+    <option value="white">白色</option>
+    <option value="red">红色</option>
+    <option value="green">绿色</option>
+    <option value="blue">蓝色</option>
+    <option value="yellow">黄色</option>
+  </select>
+  <select name="size" id="size" >
+    <option value="1">大文字</option>
+    <option value="0">小文字</option>
+  </select>
+  <select name="position" id="position"   >
+    <option value="0">滚动</option>
+    <option value="1">顶端</option>
+    <option value="2">底端</option>
+  </select>
+  <input type="text" id="text" max=300 />
+  <button type="button" id="submit">发送</button>
+</div>
+
+<script>
+(function(){
+	$("#danmu").danmu({
+	    left:0,
+	    top:0,
+	    height:"100%",
+	    width:"100%",
+	    speed:20000,
+	    opacity:1,
+	    font_size_small:16,
+	    font_size_big:24,
+	    top_botton_danmu_time:6000
+	});
+	// 从后端获取已保存的弹幕，利用addDanmu初始化弹幕，应分批获取
+	/* $("#danmu").danmu("addDanmu",[
+	   { text:"这是滚动弹幕" ,color:"white",size:1,position:0,time:2}
+	  ,{ text:"这是顶部弹幕" ,color:"yellow" ,size:1,position:1,time:3}
+	  ,{ text:"这是底部弹幕" , color:"red" ,size:1,position:2,time:3}
+	])  */ 
+	$('#danmu').danmu('danmuStart');
+	setInterval(function(){
+		$("#course").text($('#danmu').data("nowTime"));
+	}, 100);
+	if ("WebSocket" in window) {
+		var ws = new WebSocket("ws://192.168.123.100:2333");
+		ws.onopen = function() {
+			ws.send(JSON.stringify({"text":"hello", "color":"red", "position":0, "size":0, "time" :$('#danmu').data("nowTime") + 10}));
+		}
+		ws.onmessage = function(evt) {
+			console.log("message:" + evt.data);
+			$('#danmu').danmu("addDanmu", JSON.parse(evt.data));
+		}
+		ws.onerror = function (evt) {
+			console.log(evt.error);
+		}
+		ws.close = function () {
+			console.log("连接已关闭");
+		}
+		$("#submit").click(function () {
+			var sendData = {"text":$("#text").val(),"color":$("#color").val(),"position":$("#position").val(),"size":$("#size").val(), "time" : $('#danmu').data("nowTime") + 10};
+			ws.send(JSON.stringify(sendData));
+			// 同时利用ajax将弹幕异步发送后端永久保存
+			// ...
+		});
+	} else {
+		alert("该浏览器不支持websocket!");
+	}
+})();
+</script>
+</body>
+</html>
